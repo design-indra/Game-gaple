@@ -685,7 +685,7 @@ textarea:focus { border-color: var(--gold); }
 <div id="notif"></div>
 
 <!-- ============ SCREEN: FIREBASE CONFIG ============ -->
-<div id="screen-firebase" class="screen active">
+<div id="screen-firebase" class="screen" style="display:none!important">
   <div class="logo">🎴 GAPLE</div>
   <div class="subtitle">Online Multiplayer</div>
 
@@ -771,4 +771,944 @@ textarea:focus { border-color: var(--gold); }
     <div class="player-slot" id="slot-0"><div class="slot-number">PEMAIN 1</div><div class="slot-icon">👤</div><div class="slot-name">Menunggu...</div></div>
     <div class="player-slot" id="slot-1"><div class="slot-number">PEMAIN 2</div><div class="slot-icon">👤</div><div class="slot-name">Menunggu...</div></div>
     <div class="player-slot" id="slot-2"><div class="slot-number">PEMAIN 3</div><div class="slot-icon">👤</div><div class="slot-name">Menunggu...</div></div>
-    <div class="player-slot" id="slot-3"><div class="slot-number">PEMAIN 4</div><div class="slot-icon">👤</div><div class="slot-name">Menunggu...</div><
+    <div class="player-slot" id="slot-3"><div class="slot-number">PEMAIN 4</div><div class="slot-icon">👤</div><div class="slot-name">Menunggu...</div></div>
+  </div>
+
+  <div class="waiting-status" id="waiting-status">Menunggu pemain bergabung...</div>
+
+  <div style="width:100%;max-width:420px;display:flex;gap:10px;">
+    <button class="btn btn-gold" id="btn-start" onclick="startGame()" disabled style="flex:1;">▶ Mulai Permainan</button>
+    <button class="btn btn-outline" onclick="leaveRoom()" style="flex:0 0 auto;width:auto;padding:12px 16px;">✕</button>
+  </div>
+
+  <div class="card-box" style="max-width:420px;">
+    <p style="font-size:0.8rem;color:rgba(232,220,200,0.5);text-align:center;line-height:1.7;">
+      Butuh minimal <b style="color:var(--gold)">2 pemain</b> untuk memulai.<br>
+      Host (Pemain 1) yang bisa memulai permainan.
+    </p>
+  </div>
+</div>
+
+<!-- ============ SCREEN: GAME ============ -->
+<div id="screen-game" class="screen">
+  <!-- TOP: Pemain atas (lawan 2) -->
+  <div id="zone-top">
+    <div class="p-header" id="ph-top">
+      <div class="turn-dot"></div>
+      <span id="name-top">-</span>
+      <span class="tile-count" id="count-top">0</span>
+    </div>
+    <div class="hand-container" id="hand-top"></div>
+  </div>
+
+  <!-- MID -->
+  <div id="zone-mid">
+    <!-- LEFT: Pemain kiri (lawan 1) -->
+    <div id="zone-left">
+      <div class="p-header" id="ph-left">
+        <div class="turn-dot"></div>
+        <span id="name-left">-</span>
+        <span class="tile-count" id="count-left">0</span>
+      </div>
+      <div class="side-hand" id="hand-left"></div>
+    </div>
+
+    <!-- BOARD -->
+    <div id="board-area">
+      <div id="board-ends">
+        <div class="end-label">Kiri: <span id="end-left">-</span></div>
+        <div class="end-label">Kanan: <span id="end-right">-</span></div>
+      </div>
+      <div id="board-tiles"></div>
+      <div id="board-info">🎴 <span id="board-count">0</span> batu</div>
+    </div>
+
+    <!-- RIGHT: Pemain kanan (lawan 3) -->
+    <div id="zone-right">
+      <div class="p-header" id="ph-right">
+        <div class="turn-dot"></div>
+        <span id="name-right">-</span>
+        <span class="tile-count" id="count-right">0</span>
+      </div>
+      <div class="side-hand" id="hand-right"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM: Saya -->
+  <div id="zone-bottom">
+    <div id="game-infobar">
+      <div class="badge" id="turn-badge">Giliran: -</div>
+      <div class="badge" id="round-badge">Ronde 1</div>
+    </div>
+    <div class="hand-container" id="hand-me"></div>
+    <div class="p-header" id="ph-me">
+      <div class="turn-dot"></div>
+      <span id="name-me">Kamu</span>
+      <span class="tile-count" id="count-me">0</span>
+    </div>
+    <div id="my-controls">
+      <button class="action-btn pass" id="btn-pass" onclick="doPass()" disabled>⏭ Lewat</button>
+      <button class="action-btn play-selected" id="btn-play" onclick="playSelected()" disabled>▶ Mainkan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: PILIH UJUNG ============ -->
+<div class="modal-overlay" id="modal-end">
+  <div class="modal-box">
+    <h2>Pilih Posisi</h2>
+    <p>Batu ini bisa dimainkan di dua posisi. Pilih mana:</p>
+    <div class="modal-actions">
+      <button class="btn btn-gold" onclick="playToEnd('left')">⬅ Kiri (<span id="end-choice-left">-</span>)</button>
+      <button class="btn btn-gold" onclick="playToEnd('right')">Kanan (<span id="end-choice-right">-</span>) ➜</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: HASIL ============ -->
+<div class="modal-overlay" id="modal-result">
+  <div class="modal-box">
+    <h2 id="result-title">🏆 Ronde Selesai!</h2>
+    <p id="result-desc"></p>
+    <table class="score-table" id="score-table">
+      <thead><tr><th>Pemain</th><th>Batu Sisa</th><th>Poin</th></tr></thead>
+      <tbody id="score-tbody"></tbody>
+    </table>
+    <div class="modal-actions">
+      <button class="btn btn-gold" id="btn-next-round" onclick="nextRound()">▶ Ronde Berikutnya</button>
+      <button class="btn btn-outline" onclick="leaveRoom()">🚪 Keluar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<script>
+// =============================================
+// GAME ENGINE
+// =============================================
+
+const ICONS = ['🔴','🔵','🟢','🟡'];
+
+// Generate 28 domino tiles [a,b] where a<=b, a,b in 0..6
+function makeDeck() {
+  const d = [];
+  for (let i = 0; i <= 6; i++)
+    for (let j = i; j <= 6; j++)
+      d.push([i, j]);
+  return d;
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function dealHands(deck, numPlayers) {
+  // Each player gets 7 tiles
+  const hands = Array.from({length: numPlayers}, () => []);
+  const sd = shuffle(deck);
+  for (let i = 0; i < numPlayers * 7; i++) {
+    hands[i % numPlayers].push(sd[i]);
+  }
+  return hands;
+}
+
+function canPlay(tile, leftEnd, rightEnd, isFirst) {
+  if (isFirst) return true;
+  const [a, b] = tile;
+  return a === leftEnd || b === leftEnd || a === rightEnd || b === rightEnd;
+}
+
+function applyPlay(board, tile, side) {
+  // side: 'left' or 'right'
+  const [a, b] = tile;
+  if (board.tiles.length === 0) {
+    board.tiles.push({tile, flipped: false});
+    board.leftEnd = a;
+    board.rightEnd = b;
+    return;
+  }
+  if (side === 'left') {
+    const matchVal = board.leftEnd;
+    const flipped = b === matchVal;
+    board.tiles.unshift({tile, flipped});
+    board.leftEnd = flipped ? a : b;
+  } else {
+    const matchVal = board.rightEnd;
+    const flipped = a === matchVal;
+    board.tiles.push({tile, flipped});
+    board.rightEnd = flipped ? b : a;
+  }
+}
+
+function getValidSides(tile, board) {
+  if (board.tiles.length === 0) return ['right'];
+  const [a, b] = tile;
+  const sides = [];
+  if (a === board.leftEnd || b === board.leftEnd) sides.push('left');
+  if (a === board.rightEnd || b === board.rightEnd) sides.push('right');
+  return [...new Set(sides)];
+}
+
+// =============================================
+// STATE
+// =============================================
+
+let db = null;
+let demoMode = false;
+let roomRef = null;
+let myId = null;
+let myName = '';
+let roomCode = '';
+let playerIndex = -1; // 0-3
+let isHost = false;
+let gameState = null; // synced from Firebase (or local in demo)
+let selectedTile = null;
+let pendingSide = null;
+let unsubscribe = null;
+let roundNum = 1;
+
+// Positions relative to me: bottom=me, left=p+1, top=p+2, right=p+3
+function getRelIdx(absIdx) {
+  const total = gameState.players.length;
+  return ((absIdx - playerIndex) + total) % total;
+}
+
+// =============================================
+// FIREBASE CONFIG (sudah terpasang)
+// =============================================
+
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAdru__FXMtRDKP0GqykRLszszMJnOD5xo",
+  authDomain: "gaple-online-37584.firebaseapp.com",
+  databaseURL: "https://gaple-online-37584-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "gaple-online-37584",
+  storageBucket: "gaple-online-37584.firebasestorage.app",
+  messagingSenderId: "990783949809",
+  appId: "1:990783949809:web:6cc9a9a228022205929250"
+};
+
+// Auto-init Firebase saat halaman dibuka
+window.addEventListener('load', () => {
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    showScreen('lobby');
+  } catch(e) {
+    showNotif('❌ Gagal terhubung Firebase: ' + e.message);
+  }
+});
+
+// =============================================
+// FIREBASE
+// =============================================
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+function showNotif(msg, duration = 3000) {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), duration);
+}
+
+async function initFirebase() {
+  const raw = document.getElementById('firebase-config-input').value.trim();
+  if (!raw) { showNotif('⚠️ Masukkan konfigurasi Firebase!'); return; }
+  let config;
+  try {
+    config = JSON.parse(raw);
+  } catch(e) {
+    showNotif('❌ Format JSON tidak valid. Periksa kembali.');
+    return;
+  }
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(config);
+    db = firebase.database();
+    await db.ref('.info/connected').once('value');
+    showNotif('✅ Firebase terhubung!');
+    showScreen('lobby');
+  } catch(e) {
+    showNotif('❌ Gagal terhubung: ' + e.message);
+  }
+}
+
+function useDemo() {
+  demoMode = true;
+  myId = 'player_0';
+  myName = 'Saya';
+  playerIndex = 0;
+  isHost = true;
+  showNotif('🎮 Mode Demo: 4 pemain di satu perangkat');
+  showScreen('lobby');
+  document.getElementById('player-name').value = 'Pemain Demo';
+  setName();
+}
+
+function setName() {
+  const n = document.getElementById('player-name').value.trim();
+  if (!n) { showNotif('⚠️ Masukkan namamu!'); return; }
+  myName = n;
+  myId = myId || 'p_' + Math.random().toString(36).slice(2,8);
+  document.getElementById('lobby-actions').style.display = 'flex';
+}
+
+function genCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let c = '';
+  for (let i = 0; i < 6; i++) c += chars[Math.floor(Math.random() * chars.length)];
+  return c;
+}
+
+async function createRoom() {
+  if (!myName) { showNotif('⚠️ Masukkan namamu dulu!'); return; }
+  roomCode = genCode();
+  playerIndex = 0;
+  isHost = true;
+
+  if (demoMode) {
+    // Demo: simulate 4 players
+    gameState = {
+      roomCode,
+      status: 'waiting',
+      players: [
+        {id:'player_0', name:'Pemain 1 (Kamu)', index:0},
+        {id:'player_1', name:'Pemain 2 (AI)', index:1},
+        {id:'player_2', name:'Pemain 3 (AI)', index:2},
+        {id:'player_3', name:'Pemain 4 (AI)', index:3},
+      ],
+      board: {tiles:[], leftEnd: null, rightEnd: null},
+      hands: [],
+      currentTurn: 0,
+      round: 1,
+    };
+    myId = 'player_0';
+    playerIndex = 0;
+    showScreen('waiting');
+    updateWaitingUI();
+    return;
+  }
+
+  const initialData = {
+    roomCode,
+    status: 'waiting',
+    players: {
+      [myId]: { name: myName, index: 0, id: myId }
+    },
+    createdAt: Date.now()
+  };
+
+  roomRef = db.ref('rooms/' + roomCode);
+  await roomRef.set(initialData);
+  subscribeRoom();
+  showScreen('waiting');
+  document.getElementById('display-room-code').textContent = roomCode;
+}
+
+async function joinRoom() {
+  if (!myName) { showNotif('⚠️ Masukkan namamu dulu!'); return; }
+  const code = document.getElementById('join-code').value.trim().toUpperCase();
+  if (code.length < 4) { showNotif('⚠️ Masukkan kode room!'); return; }
+
+  roomRef = db.ref('rooms/' + code);
+  const snap = await roomRef.once('value');
+  const data = snap.val();
+
+  if (!data) { showNotif('❌ Room tidak ditemukan!'); return; }
+  if (data.status !== 'waiting') { showNotif('❌ Permainan sudah dimulai!'); return; }
+
+  const players = data.players || {};
+  const count = Object.keys(players).length;
+  if (count >= 4) { showNotif('❌ Room sudah penuh!'); return; }
+
+  roomCode = code;
+  playerIndex = count;
+  isHost = false;
+
+  await roomRef.child('players/' + myId).set({ name: myName, index: count, id: myId });
+  subscribeRoom();
+  showScreen('waiting');
+  document.getElementById('display-room-code').textContent = roomCode;
+}
+
+function subscribeRoom() {
+  if (unsubscribe) unsubscribe();
+  const ref = roomRef;
+  const handler = ref.on('value', snap => {
+    const data = snap.val();
+    if (!data) return;
+    onRoomUpdate(data);
+  });
+  unsubscribe = () => ref.off('value', handler);
+}
+
+function onRoomUpdate(data) {
+  gameState = data;
+  if (data.status === 'waiting') {
+    updateWaitingUI();
+  } else if (data.status === 'playing') {
+    showScreen('game');
+    renderGame();
+  } else if (data.status === 'round_end') {
+    showRoundResult();
+  }
+}
+
+function updateWaitingUI() {
+  let players;
+  if (demoMode) {
+    players = gameState.players;
+  } else {
+    players = Object.values(gameState.players || {}).sort((a,b) => a.index - b.index);
+  }
+
+  document.getElementById('display-room-code').textContent = roomCode;
+
+  for (let i = 0; i < 4; i++) {
+    const slot = document.getElementById('slot-' + i);
+    const p = players[i];
+    if (p) {
+      slot.classList.add('filled');
+      slot.querySelector('.slot-name').textContent = p.name;
+      slot.querySelector('.slot-icon').textContent = ICONS[i];
+    } else {
+      slot.classList.remove('filled');
+      slot.querySelector('.slot-name').textContent = 'Menunggu...';
+      slot.querySelector('.slot-icon').textContent = '👤';
+    }
+  }
+
+  const cnt = players.length;
+  const startBtn = document.getElementById('btn-start');
+  startBtn.disabled = !(isHost && cnt >= 2);
+
+  if (cnt < 4) {
+    document.getElementById('waiting-status').textContent = `${cnt}/4 pemain bergabung. Menunggu...`;
+  } else {
+    document.getElementById('waiting-status').textContent = '4/4 Pemain siap! Host bisa memulai.';
+  }
+}
+
+async function startGame() {
+  let players;
+  if (demoMode) {
+    players = gameState.players;
+  } else {
+    players = Object.values(gameState.players || {}).sort((a,b) => a.index - b.index);
+    if (players.length < 2) { showNotif('⚠️ Butuh minimal 2 pemain!'); return; }
+  }
+
+  const deck = makeDeck();
+  const hands = dealHands(deck, players.length);
+
+  // Find who has [6,6], they go first
+  let firstPlayer = 0;
+  let foundDouble6 = false;
+  for (let i = 0; i < players.length; i++) {
+    if (hands[i].some(t => t[0] === 6 && t[1] === 6)) {
+      firstPlayer = i;
+      foundDouble6 = true;
+      break;
+    }
+  }
+  if (!foundDouble6) firstPlayer = 0;
+
+  const newState = {
+    roomCode,
+    status: 'playing',
+    players: demoMode ? gameState.players : gameState.players,
+    hands: hands.map(h => h.map(t => t.join(','))),
+    board: { tiles: [], leftEnd: null, rightEnd: null },
+    currentTurn: firstPlayer,
+    firstMove: true,
+    round: roundNum,
+    scores: gameState.scores || Array(players.length).fill(0),
+    passCount: 0,
+  };
+
+  if (demoMode) {
+    gameState = newState;
+    showScreen('game');
+    renderGame();
+  } else {
+    await roomRef.set(newState);
+  }
+}
+
+async function leaveRoom() {
+  if (unsubscribe) unsubscribe();
+  if (roomRef && !demoMode) await roomRef.child('players/' + myId).remove();
+  location.reload();
+}
+
+// =============================================
+// GAME RENDERING
+// =============================================
+
+function parseTiles(handsRaw) {
+  if (!handsRaw) return [];
+  return handsRaw.map(h => {
+    if (!h) return [];
+    if (Array.isArray(h)) return h.map(t => typeof t === 'string' ? t.split(',').map(Number) : t);
+    return Object.values(h).map(t => typeof t === 'string' ? t.split(',').map(Number) : t);
+  });
+}
+
+function parseBoard(boardRaw) {
+  if (!boardRaw) return {tiles:[], leftEnd:null, rightEnd:null};
+  const tiles = Array.isArray(boardRaw.tiles)
+    ? boardRaw.tiles.map(bt => ({
+        tile: typeof bt.tile === 'string' ? bt.tile.split(',').map(Number) : bt.tile,
+        flipped: bt.flipped
+      }))
+    : [];
+  return { tiles, leftEnd: boardRaw.leftEnd ?? null, rightEnd: boardRaw.rightEnd ?? null };
+}
+
+function getPlayers() {
+  if (demoMode) return gameState.players;
+  return Object.values(gameState.players || {}).sort((a,b) => a.index - b.index);
+}
+
+function renderGame() {
+  const players = getPlayers();
+  const numP = players.length;
+  const hands = parseTiles(gameState.hands);
+  const board = parseBoard(gameState.board);
+  const currentTurn = gameState.currentTurn;
+  const isMyTurn = players[currentTurn]?.id === myId || (demoMode && currentTurn === playerIndex);
+
+  // Positions: me=bottom, left=+1, top=+2, right=+3
+  const positions = ['bottom', 'left', 'top', 'right'];
+  const zones = {
+    bottom: { zone: 'zone-bottom', ph: 'ph-me', name: 'name-me', count: 'count-me', hand: 'hand-me' },
+    left:   { zone: 'zone-left',   ph: 'ph-left', name: 'name-left', count: 'count-left', hand: 'hand-left' },
+    top:    { zone: 'zone-top',    ph: 'ph-top', name: 'name-top', count: 'count-top', hand: 'hand-top' },
+    right:  { zone: 'zone-right',  ph: 'ph-right', name: 'name-right', count: 'count-right', hand: 'hand-right' },
+  };
+
+  for (let absIdx = 0; absIdx < numP; absIdx++) {
+    const relIdx = getRelIdx(absIdx);
+    const pos = positions[relIdx];
+    if (!pos) continue;
+    const z = zones[pos];
+    const p = players[absIdx];
+    const hand = hands[absIdx] || [];
+    const isActive = absIdx === currentTurn;
+    const isMe = absIdx === playerIndex;
+
+    // Header
+    const ph = document.getElementById(z.ph);
+    ph.querySelector('[id^="name-"]').textContent = p ? (ICONS[absIdx] + ' ' + p.name) : '-';
+    ph.querySelector('[id^="count-"]').textContent = hand.length + ' 🎴';
+    ph.classList.toggle('active-turn', isActive);
+
+    // Hand
+    const handEl = document.getElementById(z.hand);
+    handEl.innerHTML = '';
+    const isSide = pos === 'left' || pos === 'right';
+
+    if (isMe) {
+      // Show actual tiles
+      hand.forEach((tile, ti) => {
+        const playable = isMyTurn && !gameState.firstMove
+          ? canPlay(tile, board.leftEnd, board.rightEnd, false)
+          : (isMyTurn && gameState.firstMove);
+
+        const el = makeDominoEl(tile, false, 'sz-lg', false);
+        if (playable) el.classList.add('playable');
+        if (selectedTile && selectedTile.idx === ti) el.classList.add('selected');
+        if (playable || (selectedTile && selectedTile.idx === ti)) {
+          el.style.cursor = 'pointer';
+          el.onclick = () => selectTile(ti, tile);
+        }
+        handEl.appendChild(el);
+      });
+    } else {
+      // Show backs
+      hand.forEach(() => {
+        const el = makeDominoEl(null, true, isSide ? 'sz-sm' : 'sz-sm', isSide);
+        handEl.appendChild(el);
+      });
+    }
+  }
+
+  // Board
+  renderBoard(board);
+
+  // Ends
+  document.getElementById('end-left').textContent = board.leftEnd ?? '-';
+  document.getElementById('end-right').textContent = board.rightEnd ?? '-';
+  document.getElementById('board-count').textContent = board.tiles.length;
+
+  // Info
+  const curPlayer = players[currentTurn];
+  const turnName = curPlayer ? (curPlayer.id === myId || (demoMode && currentTurn === playerIndex) ? 'Giliranmu!' : curPlayer.name) : '-';
+  document.getElementById('turn-badge').textContent = '🎯 ' + turnName;
+  document.getElementById('round-badge').textContent = '🔄 Ronde ' + (gameState.round || 1);
+
+  // My controls
+  const btnPass = document.getElementById('btn-pass');
+  const btnPlay = document.getElementById('btn-play');
+
+  if (isMyTurn) {
+    const myHand = hands[playerIndex] || [];
+    const anyPlayable = gameState.firstMove
+      ? myHand.some(t => (t[0] === 6 && t[1] === 6) || true)
+      : myHand.some(t => canPlay(t, board.leftEnd, board.rightEnd, false));
+    btnPass.disabled = anyPlayable && !gameState.firstMove; // can only pass if no moves
+    if (gameState.firstMove) btnPass.disabled = true;
+    btnPlay.disabled = !selectedTile;
+  } else {
+    btnPass.disabled = true;
+    btnPlay.disabled = true;
+  }
+
+  // Demo: Auto-play AI turns
+  if (demoMode && !isMyTurn) {
+    setTimeout(demoAIPlay, 1200);
+  }
+}
+
+function makeDominoEl(tile, isBack, sizeClass, isVert) {
+  const el = document.createElement('div');
+  el.className = 'domino ' + sizeClass + (isVert ? ' vert' : '');
+  if (isBack) { el.classList.add('back'); return el; }
+
+  const [a, b] = tile;
+  const h1 = document.createElement('div');
+  h1.className = 'dom-half';
+  h1.appendChild(makePips(a));
+  const h2 = document.createElement('div');
+  h2.className = 'dom-half';
+  h2.appendChild(makePips(b));
+  el.appendChild(h1);
+  el.appendChild(h2);
+  return el;
+}
+
+const PIP_LAYOUTS = {
+  0: [],
+  1: [[1,1]],
+  2: [[0,0],[2,2]],
+  3: [[0,0],[1,1],[2,2]],
+  4: [[0,0],[0,2],[2,0],[2,2]],
+  5: [[0,0],[0,2],[1,1],[2,0],[2,2]],
+  6: [[0,0],[0,2],[1,0],[1,2],[2,0],[2,2]],
+};
+
+function makePips(n) {
+  const el = document.createElement('div');
+  el.className = 'pips';
+  el.style.display = 'grid';
+  el.style.gridTemplate = 'repeat(3,1fr)/repeat(3,1fr)';
+  el.style.width = '100%';
+  el.style.height = '100%';
+
+  const layout = PIP_LAYOUTS[n] || [];
+  // Create 9 cells
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 3; c++) {
+      const cell = document.createElement('div');
+      cell.style.display = 'flex';
+      cell.style.alignItems = 'center';
+      cell.style.justifyContent = 'center';
+      const hasPip = layout.some(([pr,pc]) => pr === r && pc === c);
+      if (hasPip) {
+        const pip = document.createElement('div');
+        pip.className = 'pip';
+        cell.appendChild(pip);
+      }
+      el.appendChild(cell);
+    }
+  }
+  return el;
+}
+
+function renderBoard(board) {
+  const el = document.getElementById('board-tiles');
+  el.innerHTML = '';
+  if (board.tiles.length === 0) {
+    el.innerHTML = '<div style="color:rgba(232,220,200,0.3);font-size:0.85rem;text-align:center;">Belum ada batu dimainkan</div>';
+    return;
+  }
+  board.tiles.forEach(({tile, flipped}) => {
+    const t = flipped ? [tile[1], tile[0]] : tile;
+    const el2 = makeDominoEl(t, false, 'sz-sm', false);
+    el.appendChild(el2);
+  });
+}
+
+function selectTile(idx, tile) {
+  if (selectedTile && selectedTile.idx === idx) {
+    selectedTile = null;
+  } else {
+    selectedTile = {idx, tile};
+  }
+  document.getElementById('btn-play').disabled = !selectedTile;
+  renderGame();
+}
+
+function playSelected() {
+  if (!selectedTile) return;
+  const board = parseBoard(gameState.board);
+  const sides = getValidSides(selectedTile.tile, board);
+
+  if (board.tiles.length === 0 || sides.length === 1) {
+    doPlay(selectedTile.tile, sides[0] || 'right');
+  } else {
+    // Both sides valid, ask user
+    document.getElementById('end-choice-left').textContent = board.leftEnd;
+    document.getElementById('end-choice-right').textContent = board.rightEnd;
+    document.getElementById('modal-end').classList.add('open');
+  }
+}
+
+function playToEnd(side) {
+  document.getElementById('modal-end').classList.remove('open');
+  doPlay(selectedTile.tile, side);
+}
+
+async function doPlay(tile, side) {
+  const players = getPlayers();
+  const hands = parseTiles(gameState.hands);
+  const board = parseBoard(gameState.board);
+  const myHand = [...(hands[playerIndex] || [])];
+
+  // Remove tile from hand
+  const tidx = myHand.findIndex(t => t[0] === tile[0] && t[1] === tile[1]);
+  if (tidx < 0) return;
+  myHand.splice(tidx, 1);
+
+  // Apply to board
+  applyPlay(board, tile, side);
+
+  // Check win
+  if (myHand.length === 0) {
+    await commitPlay(hands, myHand, board, players, 'win');
+    return;
+  }
+
+  // Next turn
+  const nextTurn = (playerIndex + 1) % players.length;
+  await commitPlay(hands, myHand, board, players, 'continue', nextTurn);
+}
+
+async function commitPlay(hands, newHand, board, players, result, nextTurn) {
+  hands[playerIndex] = newHand;
+
+  const boardData = {
+    tiles: board.tiles.map(bt => ({ tile: bt.tile.join(','), flipped: bt.flipped })),
+    leftEnd: board.leftEnd,
+    rightEnd: board.rightEnd,
+  };
+
+  const newState = {
+    ...gameState,
+    hands: hands.map(h => h.map(t => Array.isArray(t) ? t.join(',') : t)),
+    board: boardData,
+    firstMove: false,
+    passCount: 0,
+    currentTurn: nextTurn ?? playerIndex,
+  };
+
+  if (result === 'win') {
+    newState.status = 'round_end';
+    newState.winner = playerIndex;
+    newState.winReason = 'domino';
+  }
+
+  selectedTile = null;
+
+  if (demoMode) {
+    gameState = newState;
+    if (result === 'win') { showRoundResult(); return; }
+    showScreen('game');
+    renderGame();
+  } else {
+    await roomRef.set(newState);
+  }
+}
+
+async function doPass() {
+  const players = getPlayers();
+  const passCount = (gameState.passCount || 0) + 1;
+  const nextTurn = (playerIndex + 1) % players.length;
+
+  // If all players passed = blocked game
+  const newState = {
+    ...gameState,
+    passCount,
+    currentTurn: nextTurn,
+  };
+
+  if (passCount >= players.length) {
+    newState.status = 'round_end';
+    newState.winReason = 'block';
+    // Winner = player with least pip sum
+    const hands = parseTiles(gameState.hands);
+    const sums = hands.map(h => h.reduce((s, t) => s + t[0] + t[1], 0));
+    const minSum = Math.min(...sums);
+    newState.winner = sums.indexOf(minSum);
+  }
+
+  if (demoMode) {
+    gameState = newState;
+    if (newState.status === 'round_end') { showRoundResult(); return; }
+    renderGame();
+  } else {
+    await roomRef.set(newState);
+  }
+}
+
+// =============================================
+// AI (Demo Mode)
+// =============================================
+
+function demoAIPlay() {
+  if (!gameState || gameState.status !== 'playing') return;
+  const players = getPlayers();
+  const currentTurn = gameState.currentTurn;
+  const isMyTurn = currentTurn === playerIndex;
+  if (isMyTurn) return;
+
+  const hands = parseTiles(gameState.hands);
+  const board = parseBoard(gameState.board);
+  const aiHand = hands[currentTurn];
+
+  let played = false;
+
+  if (gameState.firstMove) {
+    // Play [6,6] or first tile
+    const d6 = aiHand.findIndex(t => t[0] === 6 && t[1] === 6);
+    const ti = d6 >= 0 ? d6 : 0;
+    const tile = aiHand[ti];
+    aiHand.splice(ti, 1);
+    applyPlay(board, tile, 'right');
+    played = true;
+  } else {
+    // Find playable
+    for (let ti = 0; ti < aiHand.length; ti++) {
+      const tile = aiHand[ti];
+      const sides = getValidSides(tile, board);
+      if (sides.length > 0) {
+        aiHand.splice(ti, 1);
+        applyPlay(board, tile, sides[0]);
+        played = true;
+        break;
+      }
+    }
+  }
+
+  hands[currentTurn] = aiHand;
+  const nextTurn = (currentTurn + 1) % players.length;
+  const passCount = played ? 0 : (gameState.passCount || 0) + 1;
+
+  const boardData = {
+    tiles: board.tiles.map(bt => ({ tile: bt.tile.join(','), flipped: bt.flipped })),
+    leftEnd: board.leftEnd,
+    rightEnd: board.rightEnd,
+  };
+
+  gameState = {
+    ...gameState,
+    hands: hands.map(h => h.map(t => Array.isArray(t) ? t.join(',') : t)),
+    board: boardData,
+    firstMove: false,
+    passCount,
+    currentTurn: nextTurn,
+  };
+
+  if (aiHand.length === 0) {
+    gameState.status = 'round_end';
+    gameState.winner = currentTurn;
+    gameState.winReason = 'domino';
+    showRoundResult();
+    return;
+  }
+
+  if (!played && passCount >= players.length) {
+    gameState.status = 'round_end';
+    gameState.winReason = 'block';
+    const hs = parseTiles(gameState.hands);
+    const sums = hs.map(h => h.reduce((s,t) => s + t[0] + t[1], 0));
+    gameState.winner = sums.indexOf(Math.min(...sums));
+    showRoundResult();
+    return;
+  }
+
+  renderGame();
+}
+
+// =============================================
+// ROUND RESULT
+// =============================================
+
+function showRoundResult() {
+  const players = getPlayers();
+  const hands = parseTiles(gameState.hands);
+  const winner = gameState.winner;
+  const winReason = gameState.winReason;
+
+  const tbody = document.getElementById('score-tbody');
+  tbody.innerHTML = '';
+
+  const scores = gameState.scores || Array(players.length).fill(0);
+  const remaining = hands.map(h => h.reduce((s,t) => s + t[0] + t[1], 0));
+
+  let totalOthers = 0;
+  players.forEach((p, i) => {
+    if (i !== winner) totalOthers += remaining[i];
+  });
+  scores[winner] = (scores[winner] || 0) + totalOthers;
+
+  players.forEach((p, i) => {
+    const tr = document.createElement('tr');
+    if (i === winner) tr.classList.add('winner');
+    tr.innerHTML = `
+      <td>${ICONS[i]} ${p.name}${i === winner ? ' 🏆' : ''}</td>
+      <td>${remaining[i]} pip</td>
+      <td>${scores[i] || 0}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  const winnerName = players[winner]?.name || '-';
+  const titleEl = document.getElementById('result-title');
+  const descEl = document.getElementById('result-desc');
+
+  if (winReason === 'domino') {
+    titleEl.textContent = '🏆 DOMINO!';
+    descEl.textContent = `${winnerName} menghabiskan semua batu!`;
+  } else {
+    titleEl.textContent = '🔒 Permainan Buntu';
+    descEl.textContent = `Semua pemain tidak bisa bergerak. ${winnerName} menang dengan pip terkecil!`;
+  }
+
+  // Host-only button
+  document.getElementById('btn-next-round').disabled = !isHost;
+
+  gameState.scores = scores;
+  document.getElementById('modal-result').classList.add('open');
+}
+
+async function nextRound() {
+  document.getElementById('modal-result').classList.remove('open');
+  roundNum = (gameState.round || 1) + 1;
+  selectedTile = null;
+  await startGame();
+}
+</script>
+</body>
+</html>
+
