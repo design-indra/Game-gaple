@@ -741,12 +741,17 @@ textarea:focus { border-color: var(--gold); }
     <button class="btn btn-gold" onclick="setName()">Lanjut ➜</button>
   </div>
 
-  <div id="lobby-actions" style="display:none; width:100%; max-width:420px; display:none; flex-direction:column; gap:10px;">
-    <div class="card-box">
-      <h2>🏠 Buat Room Baru</h2>
-      <button class="btn btn-gold" onclick="createRoom()">+ Buat Room</button>
+  <div id="lobby-actions" style="display:none; width:100%; max-width:420px; flex-direction:column; gap:10px;">
+    <div class="card-box" style="border-color:rgba(76,175,80,0.5);background:rgba(76,175,80,0.07);">
+      <h2 style="color:#4caf50;">🤖 Lawan Robot</h2>
+      <p style="font-size:0.82rem;color:rgba(232,220,200,0.6);text-align:center;margin-bottom:12px;">Main sendiri lawan 3 robot AI</p>
+      <button class="btn btn-gold" onclick="startVsRobot()">&#9654; Main Lawan Robot</button>
     </div>
-
+    <div class="card-box">
+      <h2>🏠 Buat Room Online</h2>
+      <p style="font-size:0.82rem;color:rgba(232,220,200,0.6);text-align:center;margin-bottom:12px;">Main bersama teman di perangkat berbeda</p>
+      <button class="btn btn-outline" onclick="createRoom()">+ Buat Room</button>
+    </div>
     <div class="card-box">
       <h2>🚪 Gabung Room</h2>
       <div class="input-group">
@@ -1041,6 +1046,32 @@ async function initFirebase() {
   } catch(e) {
     showNotif('❌ Gagal terhubung: ' + e.message);
   }
+}
+
+function startVsRobot() {
+  if (!myName) { showNotif('Masukkan namamu dulu!'); return; }
+  demoMode = true;
+  myId = 'player_0';
+  playerIndex = 0;
+  isHost = true;
+  roomCode = genCode();
+  gameState = {
+    roomCode,
+    status: 'waiting',
+    players: [
+      {id:'player_0', name: myName, index:0},
+      {id:'player_1', name:'Robot Merah 🔴', index:1},
+      {id:'player_2', name:'Robot Biru 🔵', index:2},
+      {id:'player_3', name:'Robot Hijau 🟢', index:3},
+    ],
+    board: {tiles:[], leftEnd: null, rightEnd: null},
+    hands: [],
+    currentTurn: 0,
+    round: 1,
+    scores: [0,0,0,0],
+  };
+  showNotif('🤖 Mode Robot: Kamu vs 3 AI!');
+  startGame();
 }
 
 function useDemo() {
@@ -1711,4 +1742,3 @@ async function nextRound() {
 </script>
 </body>
 </html>
-
